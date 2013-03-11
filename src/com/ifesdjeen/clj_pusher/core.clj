@@ -1,6 +1,7 @@
 (ns com.ifesdjeen.clj-pusher.core
   (:gen-class)
-  (:use compojure.core
+  (:use clojurewerkz.eep.emitter
+        compojure.core
         lamina.core
         aleph.http)
   (:require  [cheshire.core :as json]
@@ -17,32 +18,34 @@
 ;; Live Feed
 ;;
 
-(defrecord FeedWatcher
-    [conn ^String identifier])
+(defonce emitter (new-emitter))
 
-(def feed-consumers
-  (atom #{}))
+(defn wrap-notify-peer
+  [conn]
+  (fn [[event data channel]]
+    (enqueue conn (json/generate-string (if channel
+                                          {:event event
+                                           :data data
+                                           :channel channel}
+                                          {:event event
+                                           :data data
+                                           })))
+    ))
 
 (defn peer-connected
   [conn identifier]
-  (swap! feed-consumers conj (FeedWatcher. conn identifier))
-  (printf "New live feed connection (total %d)" (count @feed-consumers)))
+  (printf "New live feed connection")
+  (add-handler emitter identifier (wrap-notify-peer conn))
+  )
 
 (defn peer-disconnected
   [conn ^String identifier]
-  (swap! feed-consumers disj (FeedWatcher. conn identifier))
-  (printf "Live feed connection closed (total %d)" (count @feed-consumers)))
+  (printf "Live feed connection closed"))
 
 (defn propagate
   [event data app-id & {:keys [channel]}]
-  (doseq [watcher (filter #(= (.identifier %) app-id) @feed-consumers)]
-    (enqueue (.conn watcher) (json/generate-string (if channel
-                                                     {:event event
-                                                      :data data
-                                                      :channel channel}
-                                                     {:event event
-                                                      :data data
-                                                      })))))
+  (sync-notify emitter app-id [event data channel])
+)
 
 
 ;;;;; (add-consumer propagate)
@@ -59,11 +62,13 @@
 
 (defn websocket-handler
   [channel request]
-  (let [app-id (get-in request [:query-params "app_id"])]
+  (let [app-id (get-in request [:route-params :app_id])]
+    (println "Peer connected: " channel, app-id)
+
     (peer-connected channel app-id)
 
     (propagate "pusher:connection_established"
-               {:socket_id "22147.1422189"}
+               {:socket_id "32147.1422189"}
                app-id)
 
     (if (channel? channel)
@@ -74,7 +79,7 @@
                                           app-id
                                           :channel (get-in data ["data" "channel"]))
                                (propagate "test-event"
-                                          {:some "data"}
+                                          {:some "2data"}
                                           app-id
                                           :channel (get-in data ["data" "channel"]))
                                )))
@@ -85,7 +90,8 @@
       (on-closed channel #(peer-disconnected channel app-id))
       (on-realized channel
                    #(peer-disconnected % app-id)
-                   #(throw %)))))
+                   #(throw %)))
+    ))
 
 
 (defn index-page
@@ -123,5 +129,4 @@
 (defn -main
   []
   (initialize-nrepl-server)
-  (start-websocket-server)
-  )
+  (start-websocket-server))
