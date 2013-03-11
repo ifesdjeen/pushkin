@@ -1,0 +1,102 @@
+body {
+  padding-top: 60px;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+  display: none;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 2px;
+}
+
+.brush .extent {
+  stroke: #fff;
+  fill-opacity: .125;
+  shape-rendering: crispEdges;
+}
+
+.line.min, .line.max {
+  stroke-width: 1px;
+  opacity: .25;
+}
+.line.max {
+  stroke: red;
+}
+
+.line.min {
+  stroke: blue;
+}
+
+
+.rules .minor {
+  stroke: #BBB;
+}
+
+.rules .domain {
+  fill: none;
+}
+
+.tick {
+  stroke-width: 1px;
+  opacity: .1;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+
+
+
+
+/**
+  * Extensions
+  */
+
+div, span, p, td {
+	font-family: Arial, sans-serif;
+}
+#chart {
+	display: inline-block;
+}
+#legend {
+	display: inline-block;
+	position: relative;
+	left: 8px;
+}
+#legend_container {
+	position: absolute;
+	right: 0;
+	bottom: 26px;
+	width: 0;
+}
+#chart_container {
+	float: left;
+	position: relative;
+}
+
+
+
+svg {
+  font: 10px sans-serif;
+}
+
+.line {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
