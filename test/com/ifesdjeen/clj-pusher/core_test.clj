@@ -1,6 +1,6 @@
-(ns com.ifesdjeen.clj-pusher.core-test
+(ns ifesdjeen.clj-pusher.core-test
   (:use clojure.test
-        com.ifesdjeen.clj-pusher.core))
+        ifesdjeen.clj-pusher.core))
 
 (deftest t-establish-connestion
   (testing "When establishing a connection")
