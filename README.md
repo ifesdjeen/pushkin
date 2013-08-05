@@ -1,15 +1,9 @@
-# org.genua.workshop
+# Clj-pusher
 
-A Clojure library designed to ... well, that part is up to you.
-
-## Usage
-
-```bash
-coffee --watch --output src/public/javascripts/lib --compile src/public/coffeescripts/
-```
+Clojure [Pusher](http://pusher.com/) protocol implementation.
 
 ## License
 
-Copyright © 2013 FIXME
+Copyright © 2013 Alex Petrov (CodeCentric AG)
 
 Distributed under the Eclipse Public License, the same as Clojure.
