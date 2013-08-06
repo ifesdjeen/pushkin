@@ -14,6 +14,8 @@
             [clojure.tools.nrepl.server :as nrepl]
             [clostache.parser :as clostache]))
 
+(alter-var-root #'*out* (constantly *out*))
+
 ;;
 ;; Live Feed
 ;;
@@ -47,6 +49,7 @@
   (doseq [channel-id (get @channel-cache app-id)]
     (delete-handler emitter [app-id socket-id channel-id])
     (undefmulticast emitter [app-id channel-id] [[app-id socket-id channel-id]]))
+
   (println "Live feed connection closed"))
 
 (defn propagate
@@ -60,7 +63,6 @@
   (defobserver emitter [app-id socket-id channel-id] (wrap-notify-peer conn socket-id))
   (defmulticast emitter [app-id channel-id] [[app-id socket-id channel-id]])
   (swap! channel-cache (fn [cache] (update-in cache [app-id] #(set (conj % channel-id)))))
-
   (enqueue conn (json/generate-string {:event "pusher_internal:subscription_succeeded"
                                        :channel channel-id})))
 
@@ -90,26 +92,21 @@
     (enqueue conn (json/generate-string {:event "pusher:connection_established"
                                          :data {:socket_id socket-id}}))
 
-    ;; (propagate "pusher:connection_established"
-    ;;            {:socket_id socket-id}
-    ;;            app-id)
-
     (if (channel? conn)
       (receive-all conn (fn [payload]
-                          (let [event-data (json/parse-string payload)
-                                channel-id (get-in event-data ["data" "channel"])]
-                            (subscribe-channel conn app-id socket-id channel-id)
-                            (println "Dat:" app-id channel-id {:some "data"})
-                            (send-data app-id channel-id {:some "data"}))))
+                          (try
+                            (let [event-data (json/parse-string payload)
+                                  channel-id (get-in event-data ["data" "channel"])]
+                              (subscribe-channel conn app-id socket-id channel-id))
+                            (catch Exception e
+                              (println (.getMessage e))))))
       (on-realized conn (fn [a] (println a)) nil))
-
 
     (if (channel? conn)
       (on-closed conn #(peer-disconnected conn app-id socket-id))
       (on-realized conn
                    #(peer-disconnected % app-id socket-id)
-                   #(throw %)))
-    ))
+                   #(throw %)))))
 
 
 (defn index-page
@@ -151,3 +148,5 @@
 
 ;; Presense channels:
 ;; Channels
+
+;; (send-data "abc123" "my-channel" {:some "data"})
