@@ -133,18 +133,18 @@
 
 
 (defn start-websocket-server
-  []
+  [config]
   (start-http-server
    (-> main-routes
        params/wrap-params
        (reload-modified/wrap-reload-modified ["src"])
        wrap-ring-handler)
-   {:port 9292 :websocket true}))
+   config))
 
 (defn -main
   []
   (initialize-nrepl-server)
-  (start-websocket-server))
+  (start-websocket-server {:host "localhost" :port 9292 :websocket true}))
 
 ;; Presense channels:
 ;; Channels
