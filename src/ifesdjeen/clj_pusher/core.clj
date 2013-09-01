@@ -20,7 +20,7 @@
 ;; Live Feed
 ;;
 
-(defonce emitter (new-emitter))
+(defonce emitter (create))
 (defonce channel-cache (atom {}))
 
 (defn wrap-notify-peer
