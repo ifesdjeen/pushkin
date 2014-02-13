@@ -14,6 +14,12 @@
 (defonce emitter (create))
 (defonce channel-cache (atom {}))
 
+(defn unsubscribe-peer [app-id socket-id channel-id]
+  (if (contains? @channel-cache channel-id)
+    (delete-handler emitter [app-id socket-id channel-id])
+    (undefmulticast emitter [app-id channel-id]
+                    [[app-id socket-id channel-id]])))
+
 (defn wrap-notify-peer
   [conn socket-id]
   (vary-meta
@@ -38,8 +44,7 @@
   (delete-handler emitter [app-id socket-id])
   (undefmulticast emitter app-id [[app-id socket-id]])
   (doseq [channel-id (get @channel-cache app-id)]
-    (delete-handler emitter [app-id socket-id channel-id])
-    (undefmulticast emitter [app-id channel-id] [[app-id socket-id channel-id]]))
+    (unsubscribe-peer app-id socket-id channel-id))
   (println "Live feed connection closed"))
 
 (defn propagate
@@ -71,23 +76,29 @@
                          {:event "pusher_internal:subscription_succeeded"
                           :channel channel-id}))))
 
+(defmethod execute-command "pusher:unsubscribe"
+  [msg conn app-id socket-id]
+  (let [channel-id (get-in msg [:data :channel])]
+    (unsubscribe-peer app-id socket-id channel-id)))
+
 (defn ws-handler [req]
   (httpkit/with-channel req conn
     (let [app-id (get-in req [:route-params :app_id])
           socket-id (java.util.UUID/randomUUID)]
-      (peer-connected conn app-id socket-id)
+                (peer-connected conn app-id socket-id)
       (httpkit/send! conn
                      (json/generate-string {:event "pusher:connection_established"
                                             :data {:socket_id socket-id}}))
-
       (httpkit/on-close conn
                         (fn [status]
-                          (peer-disconnected conn app-id socket-id)))
+                          (try
+                            (peer-disconnected conn app-id socket-id)
+                            (catch Exception e
+                              (println (.getMessage e))))))
       (httpkit/on-receive conn
                           (fn [raw-msg]
                             (try
-                              (let [msg        (json/parse-string raw-msg true)
-                                    channel-id (get-in msg [:data :channel])]
+                              (let [msg (json/parse-string raw-msg true)]
                                 (execute-command msg conn app-id socket-id))
                               (catch Exception e
                                 (println (.getMessage e)))))))))
