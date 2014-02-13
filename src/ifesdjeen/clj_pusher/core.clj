@@ -12,13 +12,16 @@
 
 
 (defonce emitter (create))
-(defonce channel-cache (atom {}))
+(defonce socket-subscriptions (atom {}))
 
 (defn unsubscribe-peer [app-id socket-id channel-id]
-  (if (contains? @channel-cache channel-id)
+  (when (contains? (get @socket-subscriptions socket-id) channel-id)
     (delete-handler emitter [app-id socket-id channel-id])
     (undefmulticast emitter [app-id channel-id]
-                    [[app-id socket-id channel-id]])))
+                    [[app-id socket-id channel-id]])
+    (swap! socket-subscriptions (fn [cache]
+                                  (update-in cache [socket-id]
+                                             #(disj % channel-id))))))
 
 (defn wrap-notify-peer
   [conn socket-id]
@@ -36,15 +39,17 @@
 (defn peer-connected
   [conn ^String app-id socket-id]
   (defobserver emitter [app-id socket-id] (wrap-notify-peer conn socket-id))
-  (defmulticast emitter app-id [[app-id socket-id]]))
+  (defmulticast emitter app-id [[app-id socket-id]])
+  (swap! socket-subscriptions #(assoc % socket-id #{})))
 
 
 (defn peer-disconnected
   [conn ^String app-id socket-id]
   (delete-handler emitter [app-id socket-id])
   (undefmulticast emitter app-id [[app-id socket-id]])
-  (doseq [channel-id (get @channel-cache app-id)]
+  (doseq [channel-id (get @socket-subscriptions socket-id)]
     (unsubscribe-peer app-id socket-id channel-id))
+  (swap! socket-subscriptions #(dissoc % socket-id))
   (println "Live feed connection closed"))
 
 (defn propagate
@@ -70,8 +75,9 @@
     (defobserver emitter [app-id socket-id channel-id]
       (wrap-notify-peer conn socket-id))
     (defmulticast emitter [app-id channel-id] [[app-id socket-id channel-id]])
-    (swap! channel-cache (fn [cache]
-                           (update-in cache [app-id] #(set (conj % channel-id)))))
+    (swap! socket-subscriptions (fn [cache]
+                           (update-in cache [socket-id]
+                                      #(conj % channel-id))))
     (httpkit/send! conn (json/generate-string
                          {:event "pusher_internal:subscription_succeeded"
                           :channel channel-id}))))
@@ -85,7 +91,7 @@
   (httpkit/with-channel req conn
     (let [app-id (get-in req [:route-params :app_id])
           socket-id (java.util.UUID/randomUUID)]
-                (peer-connected conn app-id socket-id)
+      (peer-connected conn app-id socket-id)
       (httpkit/send! conn
                      (json/generate-string {:event "pusher:connection_established"
                                             :data {:socket_id socket-id}}))
