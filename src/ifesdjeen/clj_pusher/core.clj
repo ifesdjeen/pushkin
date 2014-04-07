@@ -87,6 +87,13 @@
   (let [channel-id (get-in msg [:data :channel])]
     (unsubscribe-peer app-id socket-id channel-id)))
 
+(defmethod execute-command "pusher:ping"
+  [msg conn app-id socket-id]
+  (let [channel-id (get-in msg [:data :channel])]
+    (httpkit/send! conn (json/generate-string
+                         {:event "pusher:pong"
+                          :data {}}))))
+
 (defn ws-handler [req]
   (httpkit/with-channel req conn
     (let [app-id (get-in req [:route-params :app_id])
