@@ -10,6 +10,7 @@
                  [de.ubercode.clostache/clostache "1.3.1"]
                  [http-kit "2.1.10"]
                  [org.clojure/tools.nrepl "0.2.2"]]
+  :profiles {:dev {:dependencies [[stylefruits/gniazdo "0.1.0"]]}}
   :source-paths   ["src"]
   :resource-paths ["src-templates"]
   :main ifesdjeen.clj-pusher.core
