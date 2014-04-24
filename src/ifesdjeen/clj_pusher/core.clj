@@ -96,7 +96,7 @@
 
 (defn ws-handler [req]
   (httpkit/with-channel req conn
-    (let [app-id (get-in req [:route-params :app_id])
+    (let [app-id    (get-in req [:route-params :app_id])
           socket-id (java.util.UUID/randomUUID)]
       (peer-connected conn app-id socket-id)
       (httpkit/send! conn
@@ -136,6 +136,9 @@
   (route/not-found "Page not found"))
 
 
+(defn run-websocket-server!
+  []
+  (httpkit/run-server (site #'main-routes) {:port 9292}))
 
 (defn -main []
   (initialize-nrepl-server)
