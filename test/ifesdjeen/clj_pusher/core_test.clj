@@ -8,6 +8,11 @@
 (alter-var-root #'*out* (constantly *out*))
 
 (defn- noop [& _])
+(use-fixtures :each
+    (fn [f]
+        (run-websocket-server!)
+        (f)
+        (stop-websocket-server!)))
 
 (defmacro with-socket
   [binding url
