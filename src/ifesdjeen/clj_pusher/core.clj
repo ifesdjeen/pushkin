@@ -123,7 +123,7 @@
   []
   (.start (Thread. ^Runnable (fn []
                                (printf "Starting nrepl server on port %d\n" 7888)
-                               (defonce server (nrepl/start-server :port 7888))))))
+                               (defonce nrepl-server (nrepl/start-server :port 7888))))))
 
 (defn index-page
   [request]
