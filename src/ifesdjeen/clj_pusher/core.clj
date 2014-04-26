@@ -118,6 +118,7 @@
 
 
 (declare nrepl-server)
+(defonce ws-server (atom nil))
 
 (defn initialize-nrepl-server
   []
@@ -138,11 +139,18 @@
 
 (defn run-websocket-server!
   []
-  (httpkit/run-server (site #'main-routes) {:port 9292}))
+  (reset! ws-server (httpkit/run-server (site #'main-routes) {:port 9292})))
+
+(defn stop-websocket-server!
+  []
+  (when-not (nil? @ws-server)
+    ;;(@server :timeout 100)
+    (@ws-server)
+    (reset! ws-server nil)))
 
 (defn -main []
   (initialize-nrepl-server)
-  (httpkit/run-server (site #'main-routes) {:port 9292}))
+  (run-websocket-server!))
 
 ;; Presense channels:
 ;; Channels
